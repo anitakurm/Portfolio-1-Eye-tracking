@@ -10,17 +10,81 @@ runtime: shiny
 knitr::opts_chunk$set(echo = TRUE)
 
 #libraries
-pacman::p_load(readr,groupdata2,ggplot2,tidyverse)
+pacman::p_load(readr,groupdata2,ggplot2,tidyverse,data.table)
 
 #set wd
 setwd("C:/Users/Samsung/Desktop/expmeth/S4_Eyetracking")
 
 #load the data, TAKES SOME TIME TO DOWNLOAD, DON'T DO IT IF NOT NECESSARY
-Samples=read_delim('eyetracking_2018_samples.txt',delim='\t')
-Fixations=read_delim('eyetracking_2018_fixations.txt',delim='\t')
-Saccades=read_delim('eyetracking_2018_saccades.txt',delim='\t')
+#Samples=read_delim('eyetracking_2018_samples.txt',delim='\t')
+#Fixations=read_delim('eyetracking_2018_fixations.txt',delim='\t')
+#Saccades=read_delim('eyetracking_2018_saccades.txt',delim='\t')
 
-#data files have data from both experiemts
+#data files have data from both experiemts!
+
+#data from v1. csv
+FixationsV1=read_delim('FixationsV1.csv',delim=',')
+SaccadesV1=read_delim('SaccadesV1.csv',delim=',')
+SamplesV1=read_delim('SamplesV1.csv',delim=',')
+
+#logfiles
+setwd("C:/Users/Samsung/Desktop/expmeth/S4_Eyetracking/PupilsLogs")
+ 
+file_list <- list.files()
+dataset<-NULL
+ 
+for (file in file_list){
+       
+  # if the merged dataset doesn't exist, create it
+  if (!exists("dataset")){
+    dataset <- read.table(file, header=TRUE, sep=",")
+  }
+   
+  # if the merged dataset does exist, append to it
+  if (exists("dataset")){
+    temp_dataset <-read.table(file, header=TRUE, sep=",")
+    dataset<-rbind(dataset, temp_dataset)
+    rm(temp_dataset)
+  }
+ 
+}
+
+#add 1 to X (trial)
+dataset$X<-dataset$X+1
+dataset$X<-dataset$Trial
+dataset$X<-NULL
+
+setnames(dataset,"subject", "ParticipantID")
+
+#Merge logfiles
+SaccadesV1_new<-merge(SaccadesV1,dataset, all = T)
+FixationsV1_new<-merge(FixationsV1,dataset, all = T)
+SamplesV1_new<-merge(SamplesV1,dataset,all=T)
+
+
+#trials below 6, in search order 1 -> stars
+#trials below 6, in serach order 2 -> count
+
+SaccadesV1_new$SearchType<-NA
+SaccadesV1_new$SearchType[SaccadesV1_new$Trial <6 & SaccadesV1_new$SearchOrder == 1] <- 'Star'
+SaccadesV1_new$SearchType[SaccadesV1_new$Trial >=6 & SaccadesV1_new$SearchOrder == 1] <- 'Count'
+SaccadesV1_new$SearchType[SaccadesV1_new$Trial <6 & SaccadesV1_new$SearchOrder == 2] <- 'Count'
+SaccadesV1_new$SearchType[SaccadesV1_new$Trial >=6 & SaccadesV1_new$SearchOrder == 2] <- 'Star'
+
+FixationsV1_new$SearchType<-NA
+FixationsV1_new$SearchType[FixationsV1_new$Trial <6 & FixationsV1_new$SearchOrder == 1] <- 'Star'
+FixationsV1_new$SearchType[FixationsV1_new$Trial >=6 & FixationsV1_new$SearchOrder == 1] <- 'Count'
+FixationsV1_new$SearchType[FixationsV1_new$Trial <6 & FixationsV1_new$SearchOrder == 2] <- 'Count'
+FixationsV1_new$SearchType[FixationsV1_new$Trial >=6 & FixationsV1_new$SearchOrder == 2] <- 'Star'
+
+SamplesV1_new$SearchType<-NA
+SamplesV1_new$SearchType[SamplesV1_new$Trial <6 & SamplesV1_new$SearchOrder == 1] <- 'Star'
+SamplesV1_new$SearchType[SamplesV1_new$Trial >=6 & SamplesV1_new$SearchOrder == 1] <- 'Count'
+SamplesV1_new$SearchType[SamplesV1_new$Trial <6 & SamplesV1_new$SearchOrder == 2] <- 'Count'
+SamplesV1_new$SearchType[SamplesV1_new$Trial >=6 & SamplesV1_new$SearchOrder == 2] <- 'Star'
+
+
+
 
 ```
 
