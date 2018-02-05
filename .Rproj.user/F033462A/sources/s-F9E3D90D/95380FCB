@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1517828558583.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "95380FCB",
+    "lastKnownWriteTime" : 1517827663,
+    "last_content_update" : 1517828558583,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "C033A54F",
+        "caption" : "Saccades",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=Saccades&cache_key=C033A54F",
+        "displayedObservations" : 4535,
+        "environment" : "",
+        "object" : "Saccades",
+        "preview" : 0,
+        "totalObservations" : 4535,
+        "variables" : 167
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
