@@ -225,10 +225,89 @@ for (M in Ms) {
 #VISUAL REPRESENTATIONs
 #Visual search experiment:
 #Fixation duration <-heat maps, x and y = positions, colors = datapoints density 
+setwd("C:/Users/Samsung/Desktop/expmeth/S4_Eyetracking")
+FixationsV2<- read.csv("FixationsV2.csv")
+#libraries
+library(jpeg)
+library(grid)
+library(ggplot2)
+
+#choose the pallette
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+
+#define the image for the graph background
+setwd("C:/Users/Samsung/Desktop/expmeth/S4_Eyetracking/EyeTrackingScripts/foraging")
+img<-readJPEG("ng090ws.jpg")
+
+#rastering the image, so it'd be readable in the graph later
+g<-rasterGrob(img,interpolate=TRUE)
+
+#density
+ggplot(subset(FixationsV1_new, Task=='VisualSearch' & ParticipantID=='6_3_m2' & Trial==6), aes(x = PositionX, y = PositionY)) + 
+  xlim(0,1920) + #limiting image to the resolution of the screen used in the experiment
+  ylim(0, 1080) +
+  annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-0, ymax=1080) + #fitting the picture to the graph
+  stat_density2d(geom="raster", aes(fill=..density.., alpha=sqrt(sqrt(..density..))), contour=FALSE, n=1000) + #plotting the actual heatmap, raster makes it smoother. ggplot can automatically define what color the datapoint bin has to be based on density
+  scale_alpha(range = c(0.1, 0.6)) + scale_fill_gradient(colours = jet.colors(10), trans="sqrt") #alpha is transparency. we say to use the 10 jet colors to distribute them between diffenerent density values, transition sqrt makes it smooth 
+
+ggplot(subset(FixationsV2, Task=='VisualSearch' & ParticipantID=='6_3_m2' & Trial==6), aes(x = PositionX, y = PositionY)) +
+  xlim(0,1920) +
+  ylim(0, 1080) +
+  annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-0, ymax=1080) + #xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+  stat_density2d(geom="raster", aes(fill=..density.., alpha=sqrt(sqrt(..density..))), contour=FALSE, n=1000) +
+  scale_alpha(range = c(0.1, 0.6)) + scale_fill_gradientn(colours = jet.colors(10), trans="sqrt")
+
+
+setwd("C:/Users/Samsung/Desktop/expmeth/S4_Eyetracking/EyeTrackingScripts/foraging")
+img2<-readJPEG("ng064ws.jpg")
+g2<-rasterGrob(img2,interpolate=TRUE)
+
+ggplot(subset(FixationsV2, Task=='VisualSearch' & ParticipantID=='1_1_f1' & Trial==4), aes(x = PositionX, y = 1081-PositionY)) +
+  xlim(0,1920) +
+  ylim(0, 1080) +
+  annotation_custom(g2, xmin=-Inf, xmax=Inf, ymin=-0, ymax=1080) + #xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+  stat_density2d(geom="raster", aes(fill=..density.., alpha=sqrt(sqrt(..density..))), contour=FALSE, n=1000) +
+  scale_alpha(range = c(0.1, 0.6)) + scale_fill_gradientn(colours = jet.colors(10), trans="sqrt")
+
+
 #Saccade amplitude <- Scanpaths
-#
+img3<-readJPEG("ng151ws.jpg")
+g3<-rasterGrob(img3,interpolate = TRUE)
+
+x<-subset(FixationsV2, Task=='VisualSearch' & ParticipantID=='3_1_f1' & Trial==9)
+x<- x[order(x$Fixation),]
+
+ggplot(x, aes(x = PositionX, y = 1081-PositionY, label = Fixation)) +
+  xlim(0,1920) +
+  ylim(0, 1080) +
+  annotation_custom(g3, xmin=-Inf, xmax=Inf, ymin=-0, ymax=1080)+
+  geom_point(size = sqrt(x$Duration), alpha = 0.5, color="magenta") +
+  geom_path(size = 1, alpha = 0.3) +
+  geom_text(aes(label=Fixation,size= 5))
+  
+
+
+
 #Social engagement experiment:
 #Pupil size <- growth plot 
+#x=Trial Time
+#y=Pupil size
+#df=Samples
+#grouping variables: g1 - Directiveness, g2 = Ostevsiveness
+#geom_smooth <- line and confidence intervals
+#facet_grid
+
+setwd("C:/Users/Samsung/Desktop/expmeth/S4_Eyetracking")
+SamplesV2<-read.csv("SamplesV2.csv")
+x<-subset(SamplesV2, Task=="SocialEngagement")
+x<- x[order(x$TimeStamp),]
+
+x$Directionality<-as.factor(x$Directionality)
+ggplot(x, aes(x = TrialTime, y = PupilSize, color = Ostension)) +
+  geom_smooth()+
+  facet_grid(. ~ Directionality)
+  
+#ostension <- eye contact
 ```
 
 This R Markdown document is made interactive using Shiny. Unlike the more traditional workflow of creating static reports, you can now create documents that allow your readers to change the assumptions underlying your analysis and see the results immediately. 
