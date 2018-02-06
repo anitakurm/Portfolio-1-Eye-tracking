@@ -33,6 +33,7 @@ setwd("C:/Users/Samsung/Desktop/expmeth/S4_Eyetracking/PupilsLogs")
 file_list <- list.files()
 dataset<-NULL
  
+#merge all of the log datafiles into one dataset
 for (file in file_list){
        
   # if the merged dataset doesn't exist, create it
@@ -54,6 +55,7 @@ dataset$X<-dataset$X+1
 dataset$X<-dataset$Trial
 dataset$X<-NULL
 
+#change the names of the columns in the log files dataset
 setnames(dataset,"subject", "ParticipantID")
 
 #Merge logfiles
@@ -84,7 +86,135 @@ SamplesV1_new$SearchType[SamplesV1_new$Trial <6 & SamplesV1_new$SearchOrder == 2
 SamplesV1_new$SearchType[SamplesV1_new$Trial >=6 & SamplesV1_new$SearchOrder == 2] <- 'Star'
 
 
+#new V1 datafiles are V2 datafiles in the folder
+#always visualize and look at the data to spot abnormalities, etc.
 
+#create a model to test the hypothesis: Visual search patterns are affaceted by task structure and goals
+# predict the type of the task by variables of fixation duration, position, etc.d
+
+#models
+#model1<- Duration~SearchType+Trial+(1|ParticipantID)
+#FAMILY=Gaussian(link=log) <-- data log trasnformation, helps to normalize skewed dataset
+
+#so we have three models, use crossvalidation (3 folds) to see which one is the best
+
+#make CROSS-VALIDATION
+library(ggplot2)
+library(dplyr)
+library(lme4)
+library(MuMIn)
+library(lmerTest)
+library(gstat)
+library(stringr)
+library(plyr)
+library(caret)
+library(modelr)
+library(ModelMetrics)
+library(Metrics)
+library(tidyverse)
+library(simr)
+library(MASS)
+library(pacman)
+
+#Make variables into factors
+FixationsV1_new$ParticipantID = as.factor(FixationsV1_new$ParticipantID)
+
+  #folds first
+Folds<- createFolds(unique(FixationsV1_new$ParticipantID),k=3)
+Folds
+
+#Create ID as numbers for use in folding
+FixationsV1_new$fold_id = as.numeric(FixationsV1_new$ParticipantID)
+
+#Preperations for loop - result lists and n reset
+rmse_train = NULL
+rmse_test = NULL
+n=1
+
+
+  #loop through each fold, train a model on the other folds and test it on the fold), thanks Peter!
+
+
+#THE LOOP FOR THE BASIC MODEL  
+for (i in Folds) {
+  #Make a test dataset with one fold
+  dtest_temp = subset(subset(FixationsV1_new, Task=="VisualSearch"), fold_id %in% i)
+  #Make a training dataset with all other folds
+  dtrain_temp = subset(subset(FixationsV1_new, Task=="VisualSearch"), !fold_id %in% i)
+  
+  #View(dtest_temp)
+  #View(dtrain_temp)
+  #Make a model on the training dataset
+  Model_temp = lmer(Duration~SearchType+Trial+(1+SearchType+Trial|ParticipantID), data = dtrain_temp)
+  
+  #Check error between fit of training data and actual training data
+  rmse_train[n] = Metrics :: rmse(dtrain_temp$Duration, fitted(Model_temp))
+  
+  #Check error between predicitions for test data and actual test data
+  rmse_test[n] = Metrics :: rmse(dtest_temp$Duration, predict(Model_temp, dtest_temp, allow.new.levels=T)) 
+
+    #Loop end and n+1
+  n=n+1
+}
+
+#Get results
+rmse_train
+mean(rmse_train) #191.0751
+
+rmse_test
+mean(rmse_test) #201.8306
+
+
+###########CROSS-VALIDATION#################
+
+#Create list of the models to test
+Ms = c("Duration~SearchType+Trial+(1+SearchType+Trial|ParticipantID)", 
+       "Duration~SearchType*Trial+(1+SearchType*Trial|ParticipantID)",
+       "Duration~SearchType+Fixation+(1+SearchType+Fixation|ParticipantID)",
+       "Duration~SearchType+SearchOrder+(1+SearchType+SearchOrder|ParticipantID)"
+       )
+
+#Create lists for results
+SCORES = as.data.frame(NULL)
+
+#Create ID as numbers for use in folding
+data$fold_id = as.numeric(FixationsV1_new$ParticipantID)
+
+#Run Loop for all models
+for (M in Ms) {
+  #Create folds
+  Folds = createFolds(unique(FixationsV1_new$fold_id), 3)
+  #Preperations for loop - result lists and n reset
+  rmse_train = NULL
+  rmse_test = NULL
+  n=1
+  
+  for (i in Folds) {
+    #Make a test dataset with one fold
+    dtest_temp = subset(subset(FixationsV1_new, Task=="VisualSearch"), fold_id %in% i)
+    #Make a training dataset with all other folds
+    dtrain_temp = subset(subset(FixationsV1_new, Task=="VisualSearch"), !fold_id %in% i)
+    
+    #View(dtest_temp)
+    #View(dtrain_temp)
+    #Make a model on the training dataset
+    FixationsV1_new$ParticipantID=as.factor(FixationsV1_new$ParticipantID)
+    model_temp = glmer(M, dtrain_temp, family = gaussian(link = log))
+    
+    #Check error between fit of training data and actual training data
+    rmse_train[n] = Metrics :: rmse(dtrain_temp$Duration, fitted(model_temp))
+    
+    #Check error between predicitions for test data and actual test data
+    rmse_test[n] = Metrics :: rmse(dtest_temp$Duration, predict(model_temp, dtest_temp, allow.new.levels=T)) 
+  
+      #Loop end and n+1
+    n=n+1
+  }
+ #Create row with results from model
+  NewRow = data.frame(Model = M, rmse_train = mean(rmse_train), rmse_test = mean(rmse_test))
+  #Add to final dataframe with all models
+  SCORES = rbind(SCORES, NewRow) 
+}
 
 ```
 
