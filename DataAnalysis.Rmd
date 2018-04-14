@@ -1,0 +1,198 @@
+---
+title: "Portfolio1-eyetracking"
+author: "Anita Kurm"
+date: "April 11, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#libraries
+pacman::p_load(dplyr,readr,groupdata2,ggplot2,tidyverse, lme4, MuMIn, lmerTest, gstat, caret, simr, ModelMetrics, Metrics, MASS, pacman, modelr, plyr, stringr, data.table)
+
+#set wd
+setwd("C:/Users/JARVIS/Desktop/Uni/Semester 4/Computational modelling/Portfolio-1-Eye-tracking")
+
+#load the data, TAKES SOME TIME TO DOWNLOAD, DON'T DO IT IF NOT NECESSARY
+#Samples=read_delim('eyetracking_2018_samples.txt',delim='\t')
+#Fixations=read_delim('eyetracking_2018_fixations.txt',delim='\t')
+#Saccades=read_delim('eyetracking_2018_saccades.txt',delim='\t')
+
+#data files have data from both experiemts!
+
+#data from v1. csv
+FixationsV1=read_delim('FixationsV1.csv',delim=',')
+SaccadesV1=read_delim('SaccadesV1.csv',delim=',')
+SamplesV1=read_delim('SamplesV1.csv',delim=',')
+
+#logfiles
+setwd("C:/Users/JARVIS/Desktop/Uni/Semester 4/Computational modelling/Portfolio-1-Eye-tracking/PupilsLogs")
+
+file_list <- list.files()
+dataset<-NULL
+ 
+#merge all of the log datafiles into one dataset
+for (file in file_list){
+       
+  # if the merged dataset doesn't exist, create it
+  if (!exists("dataset")){
+    dataset <- read.table(file, header=TRUE, sep=",")
+  }
+   
+  # if the merged dataset does exist, append to it
+  if (exists("dataset")){
+    temp_dataset <-read.table(file, header=TRUE, sep=",")
+    dataset<-rbind(dataset, temp_dataset)
+    rm(temp_dataset)
+  }
+ 
+}
+
+#add 1 to X (trial)
+dataset$X<-dataset$X+1
+dataset$X<-dataset$Trial
+dataset$X<-NULL
+
+#change the names of the columns in the log files dataset
+setnames(dataset,"subject", "ParticipantID")
+
+#Merge logfiles
+SaccadesV1_new<-merge(SaccadesV1,dataset, all = T)
+FixationsV1_new<-merge(FixationsV1,dataset, all = T)
+SamplesV1_new<-merge(SamplesV1,dataset,all=T)
+
+
+#trials below 6, in search order 1 -> stars
+#trials below 6, in serach order 2 -> count
+
+SaccadesV1_new$SearchType<-NA
+SaccadesV1_new$SearchType[SaccadesV1_new$Trial <6 & SaccadesV1_new$SearchOrder == 1] <- 'Star'
+SaccadesV1_new$SearchType[SaccadesV1_new$Trial >=6 & SaccadesV1_new$SearchOrder == 1] <- 'Count'
+SaccadesV1_new$SearchType[SaccadesV1_new$Trial <6 & SaccadesV1_new$SearchOrder == 2] <- 'Count'
+SaccadesV1_new$SearchType[SaccadesV1_new$Trial >=6 & SaccadesV1_new$SearchOrder == 2] <- 'Star'
+
+FixationsV1_new$SearchType<-NA
+FixationsV1_new$SearchType[FixationsV1_new$Trial <6 & FixationsV1_new$SearchOrder == 1] <- 'Star'
+FixationsV1_new$SearchType[FixationsV1_new$Trial >=6 & FixationsV1_new$SearchOrder == 1] <- 'Count'
+FixationsV1_new$SearchType[FixationsV1_new$Trial <6 & FixationsV1_new$SearchOrder == 2] <- 'Count'
+FixationsV1_new$SearchType[FixationsV1_new$Trial >=6 & FixationsV1_new$SearchOrder == 2] <- 'Star'
+
+SamplesV1_new$SearchType<-NA
+SamplesV1_new$SearchType[SamplesV1_new$Trial <6 & SamplesV1_new$SearchOrder == 1] <- 'Star'
+SamplesV1_new$SearchType[SamplesV1_new$Trial >=6 & SamplesV1_new$SearchOrder == 1] <- 'Count'
+SamplesV1_new$SearchType[SamplesV1_new$Trial <6 & SamplesV1_new$SearchOrder == 2] <- 'Count'
+SamplesV1_new$SearchType[SamplesV1_new$Trial >=6 & SamplesV1_new$SearchOrder == 2] <- 'Star'
+
+
+
+#new V1 datafiles are V2 datafiles in the folder
+#always visualize and look at the data to spot abnormalities, etc.
+```
+
+-----------------------------VISUAL SEARCH MODELS -------------------------------------------
+  the hypothesis: Visual search patterns are affaceted by task structure and goals
+  predict the type of the task by variables of fixation duration, position, etc.d
+  Models:
+    Duration ~ SearchType+Trial+(1+SearchType+Trial|ParticipantID)
+    Duration ~ SearchType+Fixation+(1+SearchType+Fixation|ParticipantID)",
+    Duration ~ SearchType+SearchOrder+(1+SearchType+SearchOrder|ParticipantID)"
+    
+
+so we have three models, use crossvalidation (3 folds) to see which one is the best
+  
+```{r}
+#Preperations for loop - result lists and n reset
+rmse_train = NULL
+rmse_test = NULL
+n=1
+SCORES = as.data.frame(NULL)
+
+
+#Create list of the models to test
+Ms = c("Duration~SearchType+Trial+(1+SearchType+Trial|fold_id)",
+       "Duration~SearchType+Fixation+(1+SearchType+Fixation|fold_id)",
+       "Duration~SearchType+SearchOrder+(1+SearchType+SearchOrder|fold_id)"
+       )
+
+FixationVisual <- FixationsV1_new[FixationsV1_new$Task == "VisualSearch",] 
+#Create ID as numbers for use in folding
+FixationVisual$ParticipantID<- as.factor(FixationVisual$ParticipantID)
+FixationVisual$fold_id = as.numeric(FixationVisual$ParticipantID)
+
+#Run Loop for all models
+for (M in Ms) {
+  #Create folds
+  Folds = createFolds(unique(FixationVisual$fold_id), 3)
+  #Preperations for loop - result lists and n reset
+  rmse_train = NULL
+  rmse_test = NULL
+  n=1
+  
+  for (i in Folds) {
+    #Make a test dataset with one fold
+    dtest_temp = subset(FixationVisual, fold_id %in% i)
+    #Make a training dataset with all other folds
+    dtrain_temp = subset(FixationVisual, !fold_id %in% i)
+    
+    #View(dtest_temp)
+    #View(dtrain_temp)
+    #Make a model on the training dataset
+    model_temp = glmer(M, dtrain_temp, family = gaussian(link = log), control = glmerControl(optimizer = "nloptwrap", calc.derivs = FALSE))
+    
+    #Check error between fit of training data and actual training data
+    rmse_train[n] = Metrics :: rmse(dtrain_temp$Duration, fitted(model_temp))
+    
+    #Check error between predicitions for test data and actual test data
+    rmse_test[n] = Metrics :: rmse(dtest_temp$Duration, predict(model_temp, dtest_temp, allow.new.levels=T)) 
+  
+      #Loop end and n+1
+    n=n+1
+  }
+ #Create row with results from model
+  NewRow = data.frame(Model = M, rmse_train = mean(rmse_train), rmse_test = mean(rmse_test))
+  #Add to final dataframe with all models
+  SCORES = rbind(SCORES, NewRow) 
+}
+
+#see the summary of the best model (nr 1)
+bestmodel_vs<- glmer(Duration~SearchType+Trial+(1+SearchType+Trial|fold_id), FixationVisual, family = gaussian(link = log), control = glmerControl(optimizer = "nloptwrap", calc.derivs = FALSE))
+summary(bestmodel_vs)
+
+```
+  <- interpret that
+  
+  Now plots!!
+```{r}
+#VISUAL REPRESENTATIONs
+#Visual search experiment:
+#Fixation duration <-heat maps, x and y = positions, colors = datapoints density 
+setwd("C:/Users/JARVIS/Desktop/Uni/Semester 4/Computational modelling/Portfolio-1-Eye-tracking")
+FixationsV2<- read.csv("FixationsV2.csv")
+#libraries
+pacman::p_load(jpeg, grid, ggplot2)
+
+
+#choose the pallette
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+
+#define the image for the graph background
+setwd("C:/Users/JARVIS/Desktop/Uni/Semester 4/Computational modelling/Portfolio-1-Eye-tracking/eyetrackingscripts/foraging")
+img<-readJPEG("ng090ws.jpg")
+
+#rastering the image, so it'd be readable in the graph later
+g<-rasterGrob(img,interpolate=TRUE)
+
+#density
+ggplot(subset(FixationsV1_new, Task=='VisualSearch' & ParticipantID=='6_3_m2' & Trial==6), aes(x = PositionX, y = 1081 - PositionY)) +
+  xlim(0,1920) +
+  ylim(0, 1080) +
+  annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-0, ymax=1080) + #xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+  stat_density2d(geom="raster", aes(fill=..density.., alpha=sqrt(sqrt(..density..))), contour=FALSE, n=1000) + 
+  scale_alpha(range = c(0.1, 0.6)) + scale_fill_gradientn(colours = jet.colors(10), trans="sqrt")
+
+img2 <- readJPEG('ng151ws.jpg')
+
+```
+  
+  
