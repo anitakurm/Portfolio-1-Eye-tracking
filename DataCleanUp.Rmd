@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 pacman::p_load(readr,groupdata2,ggplot2,tidyverse)
 
 # Both experiments are in the same files
-setwd("C:/Users/Samsung/Desktop/expmeth/S4_Eyetracking")
+setwd("C:/Users/JARVIS/Desktop/Uni/Semester 4/Computational modelling/Portfolio-1-Eye-tracking")
 Samples=read_delim('eyetracking_2018_samples.txt',delim='\t')
 Fixations=read_delim('eyetracking_2018_fixations.txt',delim='\t')
 Saccades=read_delim('eyetracking_2018_saccades.txt',delim='\t')
