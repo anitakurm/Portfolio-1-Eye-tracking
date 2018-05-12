@@ -336,3 +336,234 @@ ggplot(SaccadeVisual, aes(SearchType, Amplitude, color=SearchType)) + geom_boxpl
 ```
   
   
+############################# SOCIAL ENGAGEMENT TASK #####################################
+
+```{r}
+FixationsV2 = read.csv("FixationsV2.csv")
+
+#subset first
+
+social = subset(FixationsV2,Task == "SocialEngagement")
+
+
+# 
+# #data cleanup
+# SaccadesV1_new$DIRECTION [grepl("dir", SaccadesV1_new$video)] = "Towards you"
+# SaccadesV1_new$DIRECTION [grepl("div", SaccadesV1_new$video)] = "Towards 3rd"
+# 
+# SamplesV1_new$DIRECTION [grepl("dir", SamplesV1_new$video)] = "Towards you"
+# SamplesV1_new$DIRECTION [grepl("div", SamplesV1_new$video)] = "Towards 3rd"
+# 
+# FixationsV1_new$DIRECTION [grepl("dir", FixationsV1_new$video)] = "Towards you"
+# FixationsV1_new$DIRECTION [grepl("div", FixationsV1_new$video)] = "Towards 3rd"
+
+#also with ostensiveness
+
+# SaccadesV1_new$Ostensiveness [grepl("+o", SaccadesV1_new$video)] = "Ostensive"
+# SaccadesV1_new$Ostensiveness [grepl("-o", SaccadesV1_new$video)] = "Not ostensive"
+# 
+# SamplesV1_new$Ostensiveness [grepl("+o", SamplesV1_new$video)] = "Ostensive"
+# SamplesV1_new$Ostensiveness [grepl("-o", SamplesV1_new$video)] = "Not ostensive"
+# 
+# FixationsV1_new$Ostensiveness [grepl("+o", FixationsV1_new$video)] = "Ostensive"
+# FixationsV1_new$Ostensiveness [grepl("-o", FixationsV1_new$video)] = "Not ostensive"
+# 
+# ##also with actor gender
+# 
+# SaccadesV1_new$ActorGender [grepl("f", SaccadesV1_new$video)] = "Female"
+# SaccadesV1_new$ActorGender [grepl("m", SaccadesV1_new$video)] = "Male"
+# 
+# SamplesV1_new$ActorGender [grepl("f", SamplesV1_new$video)] = "Female"
+# SamplesV1_new$ActorGender [grepl("m", SamplesV1_new$video)] = "Male"
+# 
+# FixationsV1_new$ActorGender [grepl("f", FixationsV1_new$video)] = "Female"
+# FixationsV1_new$ActorGender [grepl("m", FixationsV1_new$video)] = "Male"
+# 
+# #let's make life easier
+# FixationSocial <-FixationsV1_new[FixationsV1_new$Task == "SocialEngagement",]
+# SaccadeSocial <- SaccadesV1_new[SaccadesV1_new$Task == "SocialEngagement",]
+# 
+# FixationSocial$SearchOrder<-NULL
+# FixationSocial$SearchType<-NULL
+# 
+# SaccadeSocial$SearchOrder <-NULL
+# SaccadeSocial$SearchType <-NULL
+
+
+#look at pupilsize to remove outliers
+ggplot(social,aes(ParticipantID, PupilSize, colour = ParticipantID)) + geom_boxplot()+theme_classic()+ggtitle("Pupil size across participants")
+
+ggplot(social, aes(Ostension, PupilSize, colour = Directionality)) + geom_violin()+theme_classic()+ggtitle("Pupil size depending on directedness and ostensiveness")
+
+social$StartTime<-as.numeric(social$StartTime)
+
+ggplot(social, aes(StartTime, PupilSize, colour= ActorGender)) + geom_smooth()+theme_classic()+ggtitle("Time series of pupil size depending on gender")+facet_grid(~ParticipantGender)
+
+ggplot(social, aes(EndTime, PupilSize, colour= ActorGender)) + geom_smooth()+theme_classic()+ggtitle("Time series of pupil size depending on gender")+facet_grid(~ParticipantGender)
+
+ggplot(social, aes(Directionality, PupilSize, colour= Ostension)) + geom_violin()+theme_classic()+ggtitle("Pupil size depending on directionality and ostension")
+
+ggplot(social, aes(Ostension, PupilSize, colour= Directionality)) + geom_violin()+theme_classic()+ggtitle("Pupil size depending on directionality and ostension")
+
+```
+
+
+
+```{r}
+############CROSS-VALIDATION AGAIN
+
+
+#model4 = glmer(PupilSize~Ostension * Directionality + (1+Ostension + Directionality |ParticipantID),family = gaussian (link = log),social)
+
+
+#Preperations for loop - result lists and n reset
+# rmse_train = NULL
+# rmse_test = NULL
+# n=1
+# SCORES = as.data.frame(NULL)
+# Folds<-NULL
+# 
+# #Create ID as numbers for use in folding
+# social$SearchOrder<- NULL
+# social$SearchType<- NULL
+# social$ParticipantID<- as.factor(social$ParticipantID)
+# social$id = as.numeric(social$ParticipantID)
+# social$id<- as.factor(social$id)
+# social$Trial<-as.factor(social$Trial)
+# 
+# #Create list of the models to test
+# Ms = c("PupilSize ~ Ostension + Directionality + (1|id)",
+#        "PupilSize ~ Directionality + Trial + (1|id)",
+#        "PupilSize ~ Ostension + Directionality + ParticipantGender*ActorGender + (1|id)"
+#        )
+# 
+# library(caret)
+# 
+# social$PupilSize<-as.numeric(social$PupilSize)
+# SCORES<- NULL
+# folds<-NULL
+# folds = caret::createFolds(unique(social$id), k=3)
+# 
+# View(folds)
+# 
+# #Run Loop for all models, RUN SEVERAL TIMES, SOMETIMES IT WORKS, I PROMISE
+# for (M in Ms) {
+#   #Create folds
+#   folds = caret::createFolds(unique(social$id), k=3)
+#   #Preperations for loop - result lists and n reset
+#   rmse_train = NULL
+#   rmse_test = NULL
+#   n=1
+# 
+#   for (i in folds) {
+#     #Make a test dataset with one fold
+#     dtest_temp = subset(social, id %in% i)
+#     #Make a training dataset with all other folds
+#     dtrain_temp = subset(social, !id %in% i)
+# 
+#     #View(dtest_temp)
+#     #View(dtrain_temp)
+#     #Make a model on the training dataset
+#     model_temp = glmer(M, dtrain_temp, family = gaussian(link = log), control = glmerControl(optimizer = "nloptwrap", calc.derivs = FALSE))
+# 
+#     #Check error between fit of training data and actual training data
+#     rmse_train[n] = Metrics :: rmse(dtrain_temp$PupilSize, fitted(model_temp))
+# 
+#     #Check error between predicitions for test data and actual test data
+#     rmse_test[n] = Metrics :: rmse(dtest_temp$PupilSize, predict(model_temp, dtest_temp, allow.new.levels=T))
+# 
+#       #Loop end and n+1
+#     n=n+1
+#   }
+#  #Create row with results from model
+#   NewRow = data.frame(Model = M, rmse_train = mean(rmse_train), rmse_test = mean(rmse_test))
+#   #Add to final dataframe with all models
+#   SCORES = rbind(SCORES, NewRow)
+# }
+# 
+# View(rmse_train)
+
+```
+
+
+```{r}
+
+folds=4
+
+#add column called "folds"
+foldysocial=fold(social, folds, id_col = "ParticipantID")
+
+
+
+gmod="glmer(PupilSize~Ostension + Directionality +  (1+Ostension + Directionality |ParticipantID),family = gaussian (link = log), social)"
+mod1="glmer(PupilSize~Ostension + Directionality + Trial + (1+Ostension + Directionality+Trial |ParticipantID),family = gaussian (link = log),social)"
+mod2="glmer(PupilSize~Ostension + Directionality + ParticipantGender*ActorGender +(1+Ostension + Directionality+ParticipantGender*ActorGender |ParticipantID),family = gaussian (link = log),social)"
+
+
+
+models=c(gmod,mod1,mod2) 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cross_v=function(numfolds, data, tempmod_string){
+  foldysocial=fold(social, folds, id_col = "ParticipantID")
+  perf_test_list=c() #Create variables
+  perf_train_list=c()
+  #r2m=c()
+  #r2c=c()
+
+  for(i in seq(numfolds)){
+    temp_train = subset(foldysocial, .folds != i) #
+    temp_test = subset(foldysocial, .folds == i) #
+    
+    temp_model = glmer(PupilSize~Ostension + Directionality + Trial + (1+Ostension + Directionality |ParticipantID),family = gaussian (link = log), social)
+  
+    pred_test=predict(temp_model, temp_test, allow.new.levels=T) #
+    perf_test=Metrics::rmse(temp_test$Duration, pred_test) #
+    perf_test_list=c(perf_test_list, perf_test) #
+    pred_train=predict(temp_model, temp_train, allow.new.levels=T) #
+    perf_train=Metrics::rmse(temp_train$Duration, pred_train) #
+    perf_train_list=c(perf_train_list, perf_train) #
+    
+    #r2_df = as.data.frame(r.squaredGLMM(temp_model)) 
+    #r2m = c(r2m,r2_df[1,1])
+    #r2c = c(r2c,r2_df[2,1])
+  }
+  
+    perf_df= data.frame(perf_test_list, perf_train_list, temp_model=tempmod_string)
+  
+}
+
+for(temp_model in models) 
+  if (temp_model == models[1]){
+    results_df=cross_v(4, foldysocial, temp_model)
+   }else{
+   results_df = rbind(results_df, cross_v(4, foldysocial, temp_model))
+  }
+
+
+
+###########################
+
+try = results_df
+try = data.frame(try)
+
+
+try = group_by(try, temp_model) %>%
+  summarise_each(funs(mean(. , na.rm= T)), perf_test_list)
+
+try = setnames(try,"perf_test_list", "mean_test_rmse" )
+
+```
+
+```{r}
+#look up the best model
+#see the summary of the best model (nr 3)
+bestmodel_se<- glmer(PupilSize~Ostension + Directionality + ParticipantGender*ActorGender +(1+Ostension + Directionality+ParticipantGender*ActorGender |ParticipantID),family = gaussian (link = log),social)
+summary(bestmodel_se)
+
+b = glmer(PupilSize~Ostension + Directionality +ParticipantGender*ActorGender+ (1+Directionality |ParticipantID) + (1+Ostension | ParticipantID),family = gaussian (link = log), social)
+summary(b)
+
+b = glmer(PupilSize~Ostension + Directionality +ParticipantGender*ActorGender+ (1+Ostension+ Directionality+ParticipantGender+ActorGender|ParticipantID),family = gaussian (link = log), social)
+summary(b)
+```
+

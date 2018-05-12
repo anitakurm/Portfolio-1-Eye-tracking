@@ -1,7 +1,7 @@
 ---
 title: "Eyetracking"
 author: '"Anita Kurm"'
-date: '5 февраля 2018 г '
+date: '5 ??????? 2018 ? '
 output: html_document
 runtime: shiny
 ---
@@ -10,10 +10,10 @@ runtime: shiny
 knitr::opts_chunk$set(echo = TRUE)
 
 #libraries
-pacman::p_load(readr,groupdata2,ggplot2,tidyverse,data.table)
+pacman::p_load(dplyr,readr,groupdata2,ggplot2,tidyverse, lme4, MuMIn, lmerTest, gstat, caret, simr, ModelMetrics, Metrics, MASS, pacman, modelr, plyr, stringr, data.table)
 
 #set wd
-setwd("C:/Users/Samsung/Desktop/expmeth/S4_Eyetracking")
+setwd("C:/Users/JARVIS/Desktop/Uni/Semester 4/Computational modelling/Portfolio-1-Eye-tracking")
 
 #load the data, TAKES SOME TIME TO DOWNLOAD, DON'T DO IT IF NOT NECESSARY
 #Samples=read_delim('eyetracking_2018_samples.txt',delim='\t')
@@ -28,8 +28,8 @@ SaccadesV1=read_delim('SaccadesV1.csv',delim=',')
 SamplesV1=read_delim('SamplesV1.csv',delim=',')
 
 #logfiles
-setwd("C:/Users/Samsung/Desktop/expmeth/S4_Eyetracking/PupilsLogs")
- 
+setwd("C:/Users/JARVIS/Desktop/Uni/Semester 4/Computational modelling/Portfolio-1-Eye-tracking/PupilsLogs")
+
 file_list <- list.files()
 dataset<-NULL
  
@@ -99,22 +99,6 @@ SamplesV1_new$SearchType[SamplesV1_new$Trial >=6 & SamplesV1_new$SearchOrder == 
 #so we have three models, use crossvalidation (3 folds) to see which one is the best
 
 #make CROSS-VALIDATION
-library(ggplot2)
-library(dplyr)
-library(lme4)
-library(MuMIn)
-library(lmerTest)
-library(gstat)
-library(stringr)
-library(plyr)
-library(caret)
-library(modelr)
-library(ModelMetrics)
-library(Metrics)
-library(tidyverse)
-library(simr)
-library(MASS)
-library(pacman)
 
 #Make variables into factors
 FixationsV1_new$ParticipantID = as.factor(FixationsV1_new$ParticipantID)
@@ -163,13 +147,22 @@ mean(rmse_train) #191.0751
 
 rmse_test
 mean(rmse_test) #201.8306
+```
 
 
+
+
+bla bla 
+```{r}
 ###########CROSS-VALIDATION################# doesn't work.. contrasts error
+#Preperations for loop - result lists and n reset
+rmse_train = NULL
+rmse_test = NULL
+n=1
+
 
 #Create list of the models to test
-Ms = c("Duration~SearchType+Trial+(1+SearchType+Trial|ParticipantID)", 
-       "Duration~SearchType*Trial+(1+SearchType*Trial|ParticipantID)",
+Ms = c("Duration~SearchType+Trial+(1+SearchType+Trial|ParticipantID)",
        "Duration~SearchType+Fixation+(1+SearchType+Fixation|ParticipantID)",
        "Duration~SearchType+SearchOrder+(1+SearchType+SearchOrder|ParticipantID)"
        )
@@ -218,7 +211,7 @@ for (M in Ms) {
 
 
 #pupil size models - polinomial cubic model is probably the best (^3) for the social engagement task
-
+SCORES
 
 
 
@@ -309,51 +302,4 @@ ggplot(x, aes(x = TrialTime, y = PupilSize, color = Ostension)) +
   
 #ostension <- eye contact
 ```
-
-This R Markdown document is made interactive using Shiny. Unlike the more traditional workflow of creating static reports, you can now create documents that allow your readers to change the assumptions underlying your analysis and see the results immediately. 
-
-To learn more, see [Interactive Documents](http://rmarkdown.rstudio.com/authoring_shiny.html).
-
-## Inputs and Outputs
-
-You can embed Shiny inputs and outputs in your document. Outputs are automatically updated whenever inputs change.  This demonstrates how a standard R plot can be made interactive by wrapping it in the Shiny `renderPlot` function. The `selectInput` and `sliderInput` functions create the input widgets used to drive the plot.
-
-```{r eruptions, echo=FALSE}
-inputPanel(
-  selectInput("n_breaks", label = "Number of bins:",
-              choices = c(10, 20, 35, 50), selected = 20),
-  
-  sliderInput("bw_adjust", label = "Bandwidth adjustment:",
-              min = 0.2, max = 2, value = 1, step = 0.2)
-)
-
-renderPlot({
-  hist(faithful$eruptions, probability = TRUE, breaks = as.numeric(input$n_breaks),
-       xlab = "Duration (minutes)", main = "Geyser eruption duration")
-  
-  dens <- density(faithful$eruptions, adjust = input$bw_adjust)
-  lines(dens, col = "blue")
-})
-```
-
-## Embedded Application
-
-It's also possible to embed an entire Shiny application within an R Markdown document using the `shinyAppDir` function. This example embeds a Shiny application located in another directory:
-
-```{r tabsets, echo=FALSE}
-shinyAppDir(
-  system.file("examples/06_tabsets", package = "shiny"),
-  options = list(
-    width = "100%", height = 550
-  )
-)
-```
-
-Note the use of the `height` parameter to determine how much vertical space the embedded application should occupy.
-
-You can also use the `shinyApp` function to define an application inline rather then in an external directory.
-
-In all of R code chunks above the `echo = FALSE` attribute is used. This is to prevent the R code within the chunk from rendering in the document alongside the Shiny components.
-
-
 
