@@ -265,18 +265,28 @@ jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F"
 
 #define the image for the graph background
 setwd("C:/Users/JARVIS/Desktop/Uni/Semester 4/Computational modelling/Portfolio-1-Eye-tracking/eyetrackingscripts/foraging")
-img<-readJPEG("ng090ws.jpg")
+img<-readJPEG("ng219ws.jpg")
 
 #rastering the image, so it'd be readable in the graph later
 g<-rasterGrob(img,interpolate=TRUE)
 
 #density
-ggplot(subset(FixationsV1_new, Task=='VisualSearch' & ParticipantID=='6_3_m2' & Trial==6), aes(x = PositionX, y = 1081 - PositionY)) +
+ggplot(subset(FixationsV2, Task=='VisualSearch' & ParticipantID=='6_3_m2' & Trial==10), aes(x = PositionX, y = 1081 - PositionY)) +
   xlim(0,1920) +
   ylim(0, 1080) +
   annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-0, ymax=1080) + #xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
   stat_density2d(geom="raster", aes(fill=..density.., alpha=sqrt(sqrt(..density..))), contour=FALSE, n=1000) + 
-  scale_alpha(range = c(0.1, 0.6)) + scale_fill_gradientn(colours = jet.colors(10), trans="sqrt")
+  scale_alpha(range = c(0.1, 0.6)) + scale_fill_gradientn(colours = jet.colors(10), trans="sqrt")+
+  ggtitle("Search task")
+
+ggplot(subset(FixationsV2, Task=='VisualSearch' & ParticipantID=='3_1_f1' & Trial==10), aes(x = PositionX, y = 1081 - PositionY)) +
+  xlim(0,1920) +
+  ylim(0, 1080) +
+  annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-0, ymax=1080) + #xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf) +
+  stat_density2d(geom="raster", aes(fill=..density.., alpha=sqrt(sqrt(..density..))), contour=FALSE, n=1000) + 
+  scale_alpha(range = c(0.1, 0.6)) + scale_fill_gradientn(colours = jet.colors(10), trans="sqrt")+
+  ggtitle("Counting task")
+
 
 #define the image for the graph background
 setwd("C:/Users/JARVIS/Desktop/Uni/Semester 4/Computational modelling/Portfolio-1-Eye-tracking/eyetrackingscripts/foraging")
